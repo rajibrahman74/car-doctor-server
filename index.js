@@ -23,24 +23,27 @@ const client = new MongoClient(uri, {
   },
 });
 
-
 const verifyJWT = (req, res, next) => {
   console.log("hitting verify jwt");
   console.log(req.headers.authorization);
   const authorization = req.headers.authorization;
   if (!authorization) {
-    return res.status(401).send({error: true, message: "Unauthorized access"})
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized access" });
   }
   const token = authorization.split(" ")[1];
   console.log("verify jwt token", token);
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
     if (error) {
-      return res.status(403).send({error: true, message: "Unauthorized access"})
+      return res
+        .status(403)
+        .send({ error: true, message: "Unauthorized access" });
     }
     req.decoded = decoded;
-    next()
-  })
-}
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -62,7 +65,13 @@ async function run() {
 
     // get operations
     app.get("/services", async (req, res) => {
-      const cursor = servicesCollection.find();
+      const query = {};
+      const options = {
+        // sort matched documents in descending order by rating
+        sort: { price: -1 },
+      };
+
+      const cursor = servicesCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -82,13 +91,12 @@ async function run() {
     });
 
     app.get("/bookings", verifyJWT, async (req, res) => {
-      const decoded = req.decoded
+      const decoded = req.decoded;
       console.log("came back to verify", decoded);
 
       if (decoded.email !== req.query.email) {
-        return res.status(403).send({error: 1, message: "forbidden access"})
+        return res.status(403).send({ error: 1, message: "forbidden access" });
       }
-
 
       let query = {};
       if (req.query?.email) {
